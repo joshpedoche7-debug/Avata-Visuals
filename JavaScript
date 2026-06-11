@@ -1,0 +1,866 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,onAuthStateChanged,GoogleAuthProvider,signInWithPopup} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, serverTimestamp, getDocs, updateDoc, deleteDoc, doc, orderBy, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+window.addEventListener("resize", () => {
+  document.body.style.overflowX = "hidden";
+});
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDv_Om7ymkNDS0yar2lucCMkdzaLI4fYpE",
+  authDomain: "cempron-events.firebaseapp.com",
+  projectId: "cempron-events",
+  storageBucket: "cempron-events.firebasestorage.app",
+  messagingSenderId: "1058435099665",
+  appId: "1:1058435099665:web:2720d4064ef54c93be55b0"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const COORDINATOR_EMAIL = "madronamae023@gmail.com";
+
+// =====================
+// CUSTOM CONFIRM MODAL
+// =====================
+function showConfirm({ icon = "⚠️", title, message, yesLabel = "Confirm", onConfirm }) {
+  const overlay = document.getElementById("confirmOverlay");
+  if (!overlay) {
+    // Fallback if HTML not added yet
+    if (window.confirm(message)) onConfirm();
+    return;
+  }
+  document.getElementById("confirmIcon").textContent = icon;
+  document.getElementById("confirmTitle").textContent = title;
+  document.getElementById("confirmMessage").textContent = message;
+
+  overlay.classList.add("active");
+
+  // Clone to remove any previous listeners
+  const yesBtn = document.getElementById("confirmYesBtn");
+  const noBtn  = document.getElementById("confirmNoBtn");
+  const newYes = yesBtn.cloneNode(true);
+  const newNo  = noBtn.cloneNode(true);
+  newYes.textContent = yesLabel;
+  yesBtn.replaceWith(newYes);
+  noBtn.replaceWith(newNo);
+
+  function close() { overlay.classList.remove("active"); }
+
+  document.getElementById("confirmYesBtn").addEventListener("click", () => { close(); onConfirm(); });
+  document.getElementById("confirmNoBtn").addEventListener("click", close);
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); }, { once: true });
+}
+
+// =====================
+// MODAL
+// =====================
+function openModal() {
+  document.getElementById("authModal").style.display = "flex";
+  showLogin();
+}
+function closeModal() {
+  document.getElementById("authModal").style.display = "none";
+  clearErrors();
+}
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById("authModal")) closeModal();
+}
+function showLogin() {
+  document.getElementById("loginForm").style.display = "block";
+  document.getElementById("registerForm").style.display = "none";
+  document.getElementById("loginTab").classList.add("tab-active");
+  document.getElementById("registerTab").classList.remove("tab-active");
+  document.getElementById("newUser").value = "";
+  document.getElementById("newPass").value = "";
+  clearErrors();
+}
+function showRegister() {
+  document.getElementById("loginForm").style.display = "none";
+  document.getElementById("registerForm").style.display = "block";
+  document.getElementById("registerTab").classList.add("tab-active");
+  document.getElementById("loginTab").classList.remove("tab-active");
+  document.getElementById("loginUser").value = "";
+  document.getElementById("loginPass").value = "";
+  clearErrors();
+}
+function clearErrors() {
+  ["loginError","registerError"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.style.display = "none"; el.textContent = ""; }
+  });
+}
+function showError(id, msg) {
+  const el = document.getElementById(id);
+  if (el) { el.textContent = msg; el.style.display = "block"; }
+}
+function setButtonLoading(btnId, loading, originalText) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  btn.disabled = loading;
+  btn.textContent = loading ? "Please wait..." : originalText;
+}
+
+// =====================
+// AUTH
+// =====================
+async function register() {
+  const email    = document.getElementById("newUser").value.trim();
+  const password = document.getElementById("newPass").value.trim();
+  if (!email || !password) { showError("registerError", "Please fill in all fields."); return; }
+  setButtonLoading("registerBtn", true, "Create Account");
+  try {
+    await createUserWithEmailAndPassword(auth, email, password);
+    closeModal();
+  } catch (e) {
+    const msgs = {
+      "auth/email-already-in-use": "This email is already registered.",
+      "auth/invalid-email":        "Please enter a valid email address.",
+      "auth/weak-password":        "Password must be at least 6 characters."
+    };
+    showError("registerError", msgs[e.code] || "Something went wrong. Try again.");
+  } finally {
+    setButtonLoading("registerBtn", false, "Create Account");
+  }
+}
+
+async function login() {
+  const email    = document.getElementById("loginUser").value.trim();
+  const password = document.getElementById("loginPass").value.trim();
+  if (!email || !password) { showError("loginError", "Please fill in all fields."); return; }
+  setButtonLoading("loginBtn", true, "Sign In");
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+    closeModal();
+  } catch (e) {
+    showError("loginError", "Incorrect email or password.");
+  } finally {
+    setButtonLoading("loginBtn", false, "Sign In");
+  }
+}
+
+async function signInWithGoogle(formType = "login") {
+  const errorId = formType === "register" ? "registerError" : "loginError";
+  const provider = new GoogleAuthProvider();
+  try {
+    await signInWithPopup(auth, provider);
+    closeModal();
+  } catch (e) {
+    showError(errorId, "Google sign-in failed. Please try again.");
+  }
+}
+
+async function logout() {
+  try {
+    await signOut(auth);
+    document.getElementById("profileMenu").style.display = "none";
+    document.getElementById("profileWidget").style.display = "none";
+    document.getElementById("authButtons").style.display = "block";
+  } catch (err) {
+    console.error("Logout error:", err);
+  }
+}
+
+// =====================
+// AVATAR
+// =====================
+function updateAvatarDisplay(user) {
+  const avatarCircle     = document.getElementById("avatarCircle");
+  const menuAvatarCircle = document.getElementById("menuAvatarCircle");
+  const menuEmail        = document.getElementById("menuEmail");
+  const photoUrl = (user ? localStorage.getItem("cempron_avatar_" + user.uid) : null) || (user ? user.photoURL : null);
+  const initials = user && user.email ? user.email[0].toUpperCase() : "?";
+
+  if (avatarCircle) {
+    if (photoUrl) {
+      avatarCircle.innerHTML = `<img src="${photoUrl}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;border:2px solid #c5a059;display:block;">`;
+    } else {
+      avatarCircle.textContent = initials;
+      avatarCircle.style.cssText = "width:38px;height:38px;border-radius:50%;background:#c5a059;color:white;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600;border:2px solid #9e7f40;cursor:pointer;";
+    }
+  }
+  if (menuAvatarCircle) {
+    menuAvatarCircle.innerHTML = photoUrl
+      ? `<img src="${photoUrl}" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid #c5a059;display:block;">`
+      : initials;
+  }
+  if (menuEmail && user) menuEmail.textContent = user.email;
+}
+
+function handlePhotoUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    localStorage.setItem("cempron_avatar_" + auth.currentUser.uid, e.target.result);
+    updateAvatarDisplay(auth.currentUser);
+  };
+  reader.readAsDataURL(file);
+}
+
+// =====================
+// AUTH STATE
+// =====================
+onAuthStateChanged(auth, (user) => {
+  const authButtons   = document.getElementById("authButtons");
+  const profileWidget = document.getElementById("profileWidget");
+
+  if (user) {
+    const isCoordinator = user.email === COORDINATOR_EMAIL;
+    authButtons.style.display   = "none";
+    profileWidget.style.display = "block";
+    updateAvatarDisplay(user);
+
+    document.getElementById("dashboard").style.display         = isCoordinator ? "block" : "none";
+    document.getElementById("dashboardNavItem").style.display  = isCoordinator ? "block" : "none";
+    if (isCoordinator) loadBookings();
+
+    document.getElementById("myBookings").style.display        = !isCoordinator ? "block" : "none";
+    document.getElementById("myBookingsNavItem").style.display = !isCoordinator ? "block" : "none";
+    if (!isCoordinator) loadMyBookings(user.email);
+
+  } else {
+    authButtons.style.display   = "block";
+    profileWidget.style.display = "none";
+    document.getElementById("profileMenu").style.display        = "none";
+    document.getElementById("dashboard").style.display          = "none";
+    document.getElementById("dashboardNavItem").style.display   = "none";
+    document.getElementById("myBookings").style.display         = "none";
+    document.getElementById("myBookingsNavItem").style.display  = "none";
+  }
+});
+
+// =====================
+// SLIDER
+// =====================
+let currentSlide = 0;
+
+function initSlider() {
+  const dotsContainer = document.getElementById("sliderDots");
+  if (!dotsContainer) return;
+  const slides = document.querySelectorAll(".slide");
+  dotsContainer.innerHTML = "";
+  slides.forEach((_, i) => {
+    const dot = document.createElement("button");
+    dot.className = "slider-dot" + (i === 0 ? " active" : "");
+    dot.addEventListener("click", () => goToSlide(i));
+    dotsContainer.appendChild(dot);
+  });
+  currentSlide = 0;
+  updateSlider();
+  setInterval(() => {
+    goToSlide((currentSlide + 1) % document.querySelectorAll(".slide").length);
+  }, 4000);
+}
+function goToSlide(index) {
+  const total = document.querySelectorAll(".slide").length;
+  currentSlide = (index + total) % total;
+  updateSlider();
+}
+function updateSlider() {
+  const track = document.getElementById("sliderTrack");
+  if (track) track.style.transform = `translateX(-${currentSlide * 100}%)`;
+  document.querySelectorAll(".slider-dot").forEach((d, i) => {
+    d.classList.toggle("active", i === currentSlide);
+  });
+}
+
+// =====================
+// QR GENERATE
+// =====================
+async function generateQR() {
+  // Must be signed in to book
+  if (!auth.currentUser) {
+    showConfirm({
+      icon: "🔐",
+      title: "Sign In Required",
+      message: "You need to sign in or create an account before booking a meeting.",
+      yesLabel: "Sign In",
+      onConfirm: () => openModal()
+    });
+    return;
+  }
+
+  const name    = document.getElementById("qrName").value.trim();
+  const email   = document.getElementById("qrEmail").value.trim();
+  const date    = document.getElementById("qrDate").value;
+  const time    = document.getElementById("qrTime").value;
+  const pkg     = document.getElementById("qrPackage").value;
+  const message = document.getElementById("qrMessage").value.trim();
+
+  if (!name || !email || !date) {
+    alert("Please fill in your name, email, and preferred date.");
+    return;
+  }
+
+  document.getElementById("spinnerOverlay").classList.add("active");
+
+  const bookingId = "CEM-" + Date.now() + "-" + Math.random().toString(36).substr(2,5).toUpperCase();
+
+  try {
+    const q = query(collection(db, "bookings"), where("date", "==", date));
+    const snapshot = await getDocs(q);
+    let conflict = false;
+    snapshot.forEach(d => {
+      const data = d.data();
+      if (data.status !== "cancelled") conflict = true;
+    });
+    if (conflict) {
+      document.getElementById("spinnerOverlay").classList.remove("active");
+      alert(`Sorry! ${date} is already fully booked. Please choose a different date.`);
+      return;
+    }
+  } catch (err) {
+    console.error("Double booking check error:", err);
+  }
+
+  const text = [
+    "Avata Visuals — Appointment",
+    "Booking ID: " + bookingId,
+    "Name: " + name,
+    "Email: " + email,
+    "Date: " + date,
+    "Time: " + time,
+    "Package: " + pkg,
+    message ? "Message: " + message : "",
+    "Coordinator: eventsbymaryfatima@gmail.com"
+  ].filter(Boolean).join("\n");
+
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(text)}`;
+
+  const bookingError = document.getElementById("bookingError");
+  bookingError.style.display = "none";
+
+  try {
+    await addDoc(collection(db, "bookings"), {
+      bookingId:   bookingId,
+      name:        name,
+      email:       email,
+      userEmail:   auth.currentUser ? auth.currentUser.email : email,
+      date:        date,
+      time:        time,
+      package:     pkg,
+      message:     message || "",
+      qrCode:      qrUrl,
+      status:      "pending",
+      submittedAt: serverTimestamp()
+    });
+    if (auth.currentUser && auth.currentUser.email !== COORDINATOR_EMAIL) {
+      loadMyBookings(auth.currentUser.email);
+    }
+  } catch (err) {
+    console.error("Firestore error:", err);
+    alert("Something went wrong. Please try again.");
+  }
+
+  emailjs.send("service_7exp1s7", "template_47kx30c", {
+    client_name:  name,
+    client_email: email,
+    meeting_date: date,
+    meeting_time: time,
+    package:      pkg,
+    message:      message || "No additional message.",
+    booking_id:   bookingId,
+  })
+  .then(() => {
+    return emailjs.send("service_7exp1s7", "template_9x7ure9", {
+      client_name:  name,
+      client_email: email,
+      meeting_date: date,
+      meeting_time: time,
+      package:      pkg,
+      message:      message || "No additional message.",
+      booking_id:   bookingId,
+      to_email:     email
+    });
+  })
+  .then(() => {
+    document.getElementById("qrSuccess").style.display = "block";
+  })
+  .catch((err) => {
+    console.error("EmailJS Error:", err);
+  });
+
+  const container = document.getElementById("qrCanvas");
+  container.innerHTML = `<img src="${qrUrl}" width="200" height="200" alt="QR Code" style="display:block;">`;
+  document.getElementById("qrOutput").style.display = "block";
+  document.getElementById("spinnerOverlay").classList.remove("active");
+}
+
+// =====================
+// QR DOWNLOAD
+// =====================
+function downloadQR() {
+  const img = document.querySelector("#qrCanvas img");
+  if (!img) return;
+  fetch(img.src)
+    .then(res => res.blob())
+    .then(blob => {
+      const url  = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.download = "cempron-appointment-qr.png";
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+    })
+    .catch(() => window.open(img.src, "_blank"));
+}
+
+// =====================
+// QR SCAN
+// =====================
+function scanQR(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const previewImg = document.getElementById("qrPreviewImg");
+    previewImg.src = ev.target.result;
+    document.getElementById("qrScanPreview").style.display = "block";
+    document.getElementById("qrScanResult").style.display  = "none";
+    document.getElementById("qrScanError").style.display   = "none";
+    const image = new Image();
+    image.onload = () => {
+      const cvs = document.createElement("canvas");
+      cvs.width = image.width; cvs.height = image.height;
+      const ctx = cvs.getContext("2d");
+      ctx.drawImage(image, 0, 0);
+      const imageData = ctx.getImageData(0, 0, cvs.width, cvs.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height);
+      if (code) {
+        document.getElementById("qrResultBox").textContent = code.data;
+        document.getElementById("qrScanResult").style.display = "block";
+      } else {
+        document.getElementById("qrScanError").style.display = "block";
+      }
+    };
+    image.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// =====================
+// MY BOOKINGS (client)
+// =====================
+async function loadMyBookings(userEmail) {
+  const list  = document.getElementById("myBookingsList");
+  const empty = document.getElementById("myBookingsEmpty");
+  list.innerHTML = '<div class="dashboard-loading">Loading your bookings...</div>';
+  try {
+    const q = query(collection(db, "bookings"), where("userEmail", "==", userEmail));
+    const snapshot = await getDocs(q);
+    const bookings = [];
+    snapshot.forEach(d => bookings.push({ id: d.id, ...d.data() }));
+    bookings.sort((a, b) => {
+      const ta = a.submittedAt ? a.submittedAt.seconds : 0;
+      const tb = b.submittedAt ? b.submittedAt.seconds : 0;
+      return tb - ta;
+    });
+    if (bookings.length === 0) {
+      list.innerHTML = "";
+      empty.style.display = "block";
+      return;
+    }
+    empty.style.display = "none";
+    list.innerHTML = bookings.map(b => {
+      const status    = b.status || "pending";
+      const canCancel = status !== "cancelled";
+      return `
+      <div class="booking-card" id="my-card-${b.id}">
+        <div class="booking-card-top">
+          <div>
+            <div class="booking-name">${b.name}</div>
+            <div class="booking-id">${b.bookingId || b.id}</div>
+          </div>
+          <span class="booking-status status-${status}">
+            ${status.charAt(0).toUpperCase() + status.slice(1)}
+          </span>
+        </div>
+        <div class="booking-grid">
+          <div class="booking-field">
+            <div class="booking-field-label">Meeting Date</div>
+            <div class="booking-field-value">${b.date} at ${b.time}</div>
+          </div>
+          <div class="booking-field">
+            <div class="booking-field-label">Package</div>
+            <div class="booking-field-value">${b.package}</div>
+          </div>
+        </div>
+        ${b.message ? `<div class="booking-message">💬 ${b.message}</div>` : ""}
+        <div class="booking-actions">
+          ${canCancel ? `<button class="cancel-booking-btn" data-id="${b.id}">Cancel Booking</button>` : ""}
+          <button class="delete-booking-btn" data-id="${b.id}">Delete Booking</button>
+        </div>
+      </div>`;
+    }).join("");
+  } catch (err) {
+    list.innerHTML = '<div class="dashboard-loading">Could not load bookings.</div>';
+    console.error("loadMyBookings error:", err);
+  }
+}
+
+// =====================
+// CANCEL BOOKING
+// =====================
+function cancelMyBooking(docId) {
+  showConfirm({
+    icon:     "🚫",
+    title:    "Cancel Booking?",
+    message:  "Are you sure you want to cancel this booking? This cannot be undone.",
+    yesLabel: "Yes, Cancel",
+    onConfirm: async () => {
+      try {
+        await updateDoc(doc(db, "bookings", docId), { status: "cancelled" });
+        const card = document.querySelector(`#my-card-${docId}`);
+        if (card) {
+          const badge = card.querySelector(".booking-status");
+          if (badge) {
+            badge.className   = "booking-status status-cancelled";
+            badge.textContent = "Cancelled";
+          }
+          const btn = card.querySelector(".cancel-booking-btn");
+          if (btn) btn.remove();
+        }
+      } catch (err) {
+        console.error("Cancel error:", err);
+        alert("Could not cancel. Please try again.");
+      }
+    }
+  });
+}
+
+// =====================
+// DELETE BOOKING
+// =====================
+function deleteBooking(docId) {
+  showConfirm({
+    icon:     "🗑️",
+    title:    "Delete Booking?",
+    message:  "This will permanently delete the booking and cannot be recovered.",
+    yesLabel: "Yes, Delete",
+    onConfirm: async () => {
+      try {
+        await deleteDoc(doc(db, "bookings", docId));
+        if (typeof allBookings !== "undefined") {
+          allBookings = allBookings.filter(b => b.id !== docId);
+        }
+        const myCard = document.querySelector(`#my-card-${docId}`);
+        if (myCard) myCard.remove();
+        const adminCard = document.querySelector(`#card-${docId}`);
+        if (adminCard) adminCard.remove();
+      } catch (err) {
+        console.error("Delete error:", err);
+        alert("Could not delete. Please try again.");
+      }
+    }
+  });
+}
+
+// =====================
+// COORDINATOR DASHBOARD
+// =====================
+let allBookings = [];
+
+async function loadBookings() {
+  const list = document.getElementById("bookingsList");
+  list.innerHTML = '<div class="dashboard-loading">Loading bookings...</div>';
+  try {
+    const q = query(collection(db, "bookings"), orderBy("submittedAt", "desc"));
+    const snapshot = await getDocs(q);
+    allBookings = [];
+    snapshot.forEach(d => allBookings.push({ id: d.id, ...d.data() }));
+    renderBookings(allBookings);
+  } catch (err) {
+    list.innerHTML = '<div class="dashboard-loading">Could not load bookings.</div>';
+    console.error(err);
+  }
+}
+
+function statusActionsHTML(docId, currentStatus) {
+  const statuses = ["pending", "confirmed", "cancelled"];
+  return `
+    <div class="status-actions" data-id="${docId}">
+      ${statuses.map(s => `
+        <button
+          class="status-btn ${s}${currentStatus === s ? " active" : ""}"
+          data-id="${docId}"
+          data-status="${s}"
+          ${currentStatus === s ? "disabled" : ""}
+        >${s.charAt(0).toUpperCase() + s.slice(1)}</button>
+      `).join("")}
+    </div>`;
+}
+
+function updateCardStatusButtons(card, newStatus) {
+  const actions = card.querySelector(".status-actions");
+  if (!actions) return;
+  actions.querySelectorAll(".status-btn").forEach(btn => {
+    const isActive = btn.dataset.status === newStatus;
+    btn.classList.toggle("active", isActive);
+    btn.disabled = isActive;
+  });
+}
+
+function renderBookings(bookings) {
+  const list       = document.getElementById("bookingsList");
+  const noBookings = document.getElementById("noBookings");
+  if (bookings.length === 0) {
+    list.innerHTML = "";
+    noBookings.style.display = "block";
+    return;
+  }
+  noBookings.style.display = "none";
+  list.innerHTML = bookings.map(b => {
+    const status = b.status || "pending";
+    const date   = b.submittedAt
+      ? new Date(b.submittedAt.seconds * 1000).toLocaleDateString("en-PH", { year:"numeric", month:"short", day:"numeric" })
+      : "—";
+    return `
+    <div class="booking-card" id="card-${b.id}">
+      <div class="booking-card-top">
+        <div>
+          <div class="booking-name">${b.name}</div>
+          <div class="booking-id">${b.bookingId || b.id}</div>
+        </div>
+        ${statusActionsHTML(b.id, status)}
+      </div>
+      <div class="booking-grid">
+        <div class="booking-field"><div class="booking-field-label">Email</div><div class="booking-field-value">${b.email}</div></div>
+        <div class="booking-field"><div class="booking-field-label">Meeting Date</div><div class="booking-field-value">${b.date} at ${b.time}</div></div>
+        <div class="booking-field"><div class="booking-field-label">Package</div><div class="booking-field-value">${b.package}</div></div>
+        <div class="booking-field"><div class="booking-field-label">Submitted</div><div class="booking-field-value">${date}</div></div>
+      </div>
+      ${b.message ? `<div class="booking-message">💬 ${b.message}</div>` : ""}
+      <div class="booking-actions">
+        <button class="delete-booking-btn" data-id="${b.id}">Delete Booking</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+async function setStatus(docId, newStatus) {
+  try {
+    await updateDoc(doc(db, "bookings", docId), { status: newStatus });
+    const booking = allBookings.find(b => b.id === docId);
+    if (booking) booking.status = newStatus;
+    const card = document.querySelector(`#card-${docId}`);
+    if (card) updateCardStatusButtons(card, newStatus);
+  } catch (err) {
+    console.error("Status update error:", err);
+    alert("Could not update status. Please try again.");
+  }
+}
+
+function filterBookings() {
+  const status = document.getElementById("filterStatus").value;
+  const search = document.getElementById("filterSearch").value.toLowerCase();
+  const filtered = allBookings.filter(b => {
+    const matchStatus = status === "all" || (b.status || "pending") === status;
+    const matchSearch = b.name.toLowerCase().includes(search) || b.email.toLowerCase().includes(search);
+    return matchStatus && matchSearch;
+  });
+  renderBookings(filtered);
+}
+
+// =====================
+// CAMERA QR SCAN
+// =====================
+let cameraStream   = null;
+let cameraInterval = null;
+
+function isMobile() { return window.innerWidth <= 768; }
+
+function startCamera() {
+  const section = document.getElementById("cameraSection");
+  const video   = document.getElementById("cameraFeed");
+  section.style.display = "block";
+  document.getElementById("qrScanResult").style.display = "none";
+  document.getElementById("qrScanError").style.display  = "none";
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+    .then(stream => {
+      cameraStream    = stream;
+      video.srcObject = stream;
+      video.play();
+      cameraInterval = setInterval(() => {
+        if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
+        const cvs = document.createElement("canvas");
+        cvs.width = video.videoWidth; cvs.height = video.videoHeight;
+        const ctx = cvs.getContext("2d");
+        ctx.drawImage(video, 0, 0, cvs.width, cvs.height);
+        const imageData = ctx.getImageData(0, 0, cvs.width, cvs.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height);
+        if (code) {
+          document.getElementById("qrResultBox").textContent = code.data;
+          document.getElementById("qrScanResult").style.display = "block";
+          stopCamera();
+        }
+      }, 500);
+    })
+    .catch(() => {
+      alert("Could not access camera. Please allow permission or use the upload option.");
+      section.style.display = "none";
+    });
+}
+
+function stopCamera() {
+  if (cameraInterval) { clearInterval(cameraInterval); cameraInterval = null; }
+  if (cameraStream)   { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
+  document.getElementById("cameraSection").style.display = "none";
+}
+
+// =====================
+// WIRE UP EVENTS
+// =====================
+document.addEventListener("DOMContentLoaded", () => {
+
+  const hamburger  = document.getElementById("hamburgerBtn");
+  const nav        = document.getElementById("mainNav");
+  const navOverlay = document.getElementById("navOverlay");
+
+  function openNav() {
+    nav.style.display = "flex";
+    requestAnimationFrame(() => {
+      nav.classList.add("open");
+      navOverlay.classList.add("open");
+    });
+    hamburger.classList.add("open");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeNav() {
+    nav.classList.remove("open");
+    navOverlay.classList.remove("open");
+    hamburger.classList.remove("open");
+    document.body.style.overflow = "";
+    setTimeout(() => {
+      if (!nav.classList.contains("open")) nav.style.display = "none";
+    }, 350);
+  }
+
+  if (hamburger) {
+    hamburger.addEventListener("click", (e) => {
+      e.stopPropagation();
+      nav.classList.contains("open") ? closeNav() : openNav();
+    });
+  }
+  if (navOverlay) navOverlay.addEventListener("click", closeNav);
+  nav.querySelectorAll("a").forEach(link => link.addEventListener("click", closeNav));
+
+  window.addEventListener("scroll", () => {
+    document.querySelector("header").classList.toggle("scrolled", window.scrollY > 20);
+  });
+
+  const avatar = document.getElementById("avatarCircle");
+  if (avatar) {
+    avatar.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const menu = document.getElementById("profileMenu");
+      menu.style.display = menu.style.display === "block" ? "none" : "block";
+    });
+  }
+
+  document.addEventListener("click", (e) => {
+    const changeBtn = e.target.closest("#changePhotoBtn");
+    if (changeBtn) {
+      e.preventDefault();
+      document.getElementById("photoUploadInput")?.click();
+    }
+  });
+
+  document.addEventListener("click", async (e) => {
+    if (e.target.closest("#signOutBtn")) {
+      e.preventDefault();
+      await logout();
+    }
+  });
+
+  document.addEventListener("click", (e) => {
+    const profileMenu  = document.getElementById("profileMenu");
+    const avatarCircle = document.getElementById("avatarCircle");
+    if (profileMenu && avatarCircle && !profileMenu.contains(e.target) && !avatarCircle.contains(e.target)) {
+      profileMenu.style.display = "none";
+    }
+  });
+
+  document.getElementById("openModalBtn").addEventListener("click", openModal);
+  document.getElementById("closeModalBtn").addEventListener("click", closeModal);
+  document.getElementById("loginTab").addEventListener("click", showLogin);
+  document.getElementById("registerTab").addEventListener("click", showRegister);
+  document.getElementById("loginBtn").addEventListener("click", login);
+  document.getElementById("registerBtn").addEventListener("click", register);
+  document.getElementById("googleSignInBtn").addEventListener("click", () => signInWithGoogle("login"));
+  document.getElementById("googleSignUpBtn").addEventListener("click", () => signInWithGoogle("register"));
+  document.getElementById("authModal").addEventListener("click", handleOverlayClick);
+  document.getElementById("photoUploadInput").addEventListener("change", function(){ handlePhotoUpload(this); });
+
+  document.getElementById("filterStatus").addEventListener("change", filterBookings);
+  document.getElementById("filterSearch").addEventListener("input", filterBookings);
+
+  // Coordinator: status buttons
+  document.getElementById("bookingsList").addEventListener("click", (e) => {
+    const btn = e.target.closest(".status-btn");
+    if (!btn || btn.disabled) return;
+    setStatus(btn.dataset.id, btn.dataset.status);
+  });
+
+  // Coordinator: delete button
+  document.getElementById("bookingsList").addEventListener("click", (e) => {
+    const btn = e.target.closest(".delete-booking-btn");
+    if (!btn) return;
+    deleteBooking(btn.dataset.id);
+  });
+
+  // Client: cancel + delete buttons
+  document.getElementById("myBookingsList").addEventListener("click", (e) => {
+    const cancelBtn = e.target.closest(".cancel-booking-btn");
+    if (cancelBtn) { cancelMyBooking(cancelBtn.dataset.id); return; }
+    const deleteBtn = e.target.closest(".delete-booking-btn");
+    if (deleteBtn) { deleteBooking(deleteBtn.dataset.id); }
+  });
+
+  document.getElementById("sliderPrev").addEventListener("click", () => goToSlide(currentSlide - 1));
+  document.getElementById("sliderNext").addEventListener("click", () => goToSlide(currentSlide + 1));
+  initSlider();
+
+  document.querySelectorAll("input, textarea").forEach(el => {
+    el.addEventListener("focus", () => { document.body.style.overflow = "auto"; });
+  });
+
+  let startX = 0;
+  const slider = document.getElementById("sliderTrack");
+  if (slider) {
+    slider.addEventListener("touchstart", (e) => { startX = e.touches[0].clientX; });
+    slider.addEventListener("touchend",   (e) => {
+      const diff = startX - e.changedTouches[0].clientX;
+      if (Math.abs(diff) > 50) goToSlide(diff > 0 ? currentSlide + 1 : currentSlide - 1);
+    });
+  }
+
+  document.getElementById("generateQrBtn").addEventListener("click", () => {
+    if (isMobile()) document.activeElement.blur();
+    generateQR();
+  });
+  document.getElementById("downloadQrBtn").addEventListener("click", downloadQR);
+  document.getElementById("qrScanInput").addEventListener("change", scanQR);
+  document.getElementById("startCameraBtn").addEventListener("click", startCamera);
+  document.getElementById("stopCameraBtn").addEventListener("click", stopCamera);
+
+  const themeToggle = document.getElementById("themeToggle");
+  if (themeToggle) themeToggle.addEventListener("click", toggleTheme);
+});
+
+// =====================
+// DARK / LIGHT MODE
+// =====================
+function initTheme() {
+  const saved = localStorage.getItem("avata_theme");
+  if (saved === "dark") document.body.classList.add("dark-mode");
+}
+
+function toggleTheme() {
+  const isDark = document.body.classList.toggle("dark-mode");
+  localStorage.setItem("avata_theme", isDark ? "dark" : "light");
+}
+
+initTheme();
