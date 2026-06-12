@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AVATA VISUALS</title>
+<link rel="stylesheet" href="style.css">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- SPINNER -->
+<div class="spinner-overlay" id="spinnerOverlay">
+  <div class="spinner"></div>
+  <div class="spinner-text">Sending your request...</div>
+</div>
+
+<!-- NAV OVERLAY -->
+<div class="nav-overlay" id="navOverlay"></div>
+
+<!-- AUTH MODAL -->
+<div id="authModal" class="modal">
+  <div class="modal-content">
+    <span class="close-btn" id="closeModalBtn">&times;</span>
+    <div class="modal-photo">
+      <img src="https://images.unsplash.com/photo-1606800052052-a08af7148866?auto=format&fit=crop&w=600&q=80" alt="Wedding couple">
+      <div class="modal-photo-overlay">
+        <div class="modal-photo-brand">Avata</div>
+        <div class="modal-photo-tagline">Your dream day awaits</div>
+      </div>
+    </div>
+    <div class="auth-tabs">
+      <button id="loginTab" class="tab-active">Sign In</button>
+      <button id="registerTab">Sign Up</button>
+    </div>
+    <div class="modal-body-inner">
+      <div id="loginForm">
+        <h2>Welcome Back</h2>
+        <div id="loginError" class="auth-error" style="display:none;"></div>
+        <input type="email" id="loginUser" placeholder="Email address">
+        <input type="password" id="loginPass" placeholder="Password">
+        <button class="cta-btn" style="width:100%;margin-top:12px;" id="loginBtn">Sign In</button>
+        <div class="auth-divider"><span>or</span></div>
+        <button class="google-btn" id="googleSignInBtn">
+          <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
+          Continue with Google
+        </button>
+      </div>
+      <div id="registerForm" style="display:none;">
+        <h2>Create Account</h2>
+        <div id="registerError" class="auth-error" style="display:none;"></div>
+        <input type="email" id="newUser" placeholder="Email address">
+        <input type="password" id="newPass" placeholder="Password (min. 6 characters)">
+        <button class="cta-btn" style="width:100%;margin-top:12px;" id="registerBtn">Create Account</button>
+        <div class="auth-divider"><span>or</span></div>
+        <button class="google-btn" id="googleSignUpBtn">
+          <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
+          Continue with Google
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+
+  <!-- LEFT: hamburger + logo -->
+  <div class="header-left">
+    <button class="hamburger" id="hamburgerBtn" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="logo">
+      <div class="logo-monogram">
+        <span class="logo-monogram-text">AV</span>
+        <span class="logo-monogram-sub">VISUALS</span>
+      </div>
+      <div class="logo-divider"></div>
+      <div class="logo-text">
+        <span class="logo-main">AVATA VISUALS</span>
+        <span class="logo-tagline">Events by Fatima</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- NAV PANEL (slides in from left) -->
+  <nav id="mainNav">
+    <ul>
+      <li><a href="#home">Home</a></li>
+      <li><a href="#services">Services</a></li>
+      <li><a href="#gallery">Gallery</a></li>
+      <li><a href="#qrcode">Book Meeting</a></li>
+      <li id="dashboardNavItem" style="display:none;"><a href="#dashboard">Dashboard</a></li>
+      <li id="myBookingsNavItem" style="display:none;"><a href="#myBookings">My Bookings</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul>
+  </nav>
+
+  <!-- CENTER: coordinator info -->
+  <div class="header-center">
+    <div class="top-info-item">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.18 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 5.49 5.49l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21 16.92z"/></svg>
+      09663627910
+    </div>
+    <span class="top-info-dot">·</span>
+    <div class="top-info-item">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      eventsbymaryfatima@gmail.com
+    </div>
+    <span class="top-info-dot">·</span>
+    <div class="top-info-item">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Always Open
+    </div>
+  </div>
+
+  <!-- RIGHT: auth -->
+  <div class="header-right">
+    <!-- DARK MODE TOGGLE -->
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+      <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+    <div id="authButtons">
+      <button class="cta-btn auth-trigger-btn" id="openModalBtn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;margin-top:-2px;"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        Sign In
+      </button>
+    </div>
+    <div id="profileWidget" style="display:none; position:relative;">
+      <div id="avatarCircle" style="width:38px;height:38px;border-radius:50%;background:#c5a059;color:white;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600;border:2px solid #9e7f40;cursor:pointer;user-select:none;"></div>
+      <div id="profileMenu" style="display:none;" class="profile-menu">
+        <div class="profile-menu-header">
+          <div id="menuAvatarCircle" style="width:56px;height:56px;border-radius:50%;background:#c5a059;color:white;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:600;margin:0 auto 8px;"></div>
+          <div id="menuEmail" class="menu-email"></div>
+        </div>
+        <div class="profile-menu-divider"></div>
+        <button class="profile-menu-item" id="changePhotoBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+          Change Photo
+        </button>
+        <button class="profile-menu-item profile-menu-signout" id="signOutBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Sign Out
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <input type="file" id="photoUploadInput" accept="image/*" style="display:none;">
+</header>
+
+<!-- HERO -->
+<section class="hero" id="home">
+  <p class="hero-subtitle">Elegant & Timeless Weddings</p>
+  <h1>Turning Dreams<br>into Reality</h1>
+  <button class="cta-btn" onclick="window.location.href='#services'">Explore Packages</button>
+</section>
+
+<!-- SERVICES -->
+<section class="services" id="services">
+  <h2 class="section-title">Our Expertise</h2>
+  <div class="section-divider"><span>✦</span></div>
+  <div class="service-grid">
+    <div class="service-card">
+      <h3>Full Coordination</h3>
+      <p>From the proposal to the last dance. We handle vendor sourcing, budget management, and design.</p>
+    </div>
+    <div class="service-card">
+      <h3>On-the-Day</h3>
+      <p>You plan the details, we execute the day. Perfect for couples who want to relax on their big day.</p>
+    </div>
+    <div class="service-card">
+      <h3>Styling & Design</h3>
+      <p>Curating the visual look of your wedding with florals, lighting, and tablescapes.</p>
+    </div>
+  </div>
+</section>
+
+<!-- GALLERY -->
+<section class="gallery-section" id="gallery">
+  <h2 class="section-title">Our Work</h2>
+  <div class="section-divider"><span>✦</span></div>
+
+  <!-- SLIDER -->
+  <div class="slider-wrapper">
+    <div class="slider-track" id="sliderTrack">
+      <div class="slide">
+        <img src="689007696_982074254212124_6171772154060256739_n.jpg" alt="Ceremony">
+      </div>
+      <div class="slide">
+        <img src="686723754_1545383320625691_7554637928329386680_n.jpg" alt="Ceremony">
+      </div>
+      <div class="slide">
+        <img src="690820691_1623066748807252_4413878931753084841_n.jpg" alt="Florals">
+      </div>
+      <div class="slide">
+        <img src="690838266_959098040437645_8374838197103505486_n.jpg" alt="Rings">
+      </div>
+      <div class="slide">
+        <img src="690896127_820998684039447_1061536097285020660_n.jpg" alt="Rings">
+      </div>
+      <div class="slide">
+        <img src="668462816_4158078121002569_921584369498652603_n.jpg" alt="Couple">
+      </div>
+    </div>
+    <button class="slider-btn slider-prev" id="sliderPrev">&#8249;</button>
+    <button class="slider-btn slider-next" id="sliderNext">&#8250;</button>
+    <div class="slider-dots" id="sliderDots"></div>
+  </div>
+</section>
+
+<!-- BOOK A MEETING + QR -->
+<section class="qr-section" id="qrcode">
+  <h2 class="section-title">Book a Personal Meeting</h2>
+  <div class="section-divider"><span>✦</span></div>
+  <p style="text-align:center;color:#999;margin-bottom:3rem;font-size:14px;letter-spacing:0.5px;">Schedule a consultation and we'll send a confirmation to the coordinator.</p>
+
+  <div class="qr-grid">
+
+    <!-- BOOKING FORM -->
+    <div class="qr-card">
+      <h3>Schedule a Meeting</h3>
+      <p style="font-size:13px;color:#888;margin-bottom:20px;">Fill in your details and preferred date. An email will be sent to our coordinator.</p>
+      <div class="form-group">
+        <label>Your Full Name</label>
+        <input type="text" id="qrName" placeholder="e.g. Maria Santos">
+      </div>
+      <div class="form-group">
+        <label>Your Email</label>
+        <input type="email" id="qrEmail" placeholder="e.g. maria@email.com">
+      </div>
+      <div class="form-group">
+        <label>Preferred Meeting Date</label>
+        <input type="date" id="qrDate">
+      </div>
+      <div class="form-group">
+        <label>Preferred Time</label>
+        <select id="qrTime">
+          <option value="9:00 AM">9:00 AM</option>
+          <option value="10:00 AM">10:00 AM</option>
+          <option value="11:00 AM">11:00 AM</option>
+          <option value="1:00 PM">1:00 PM</option>
+          <option value="2:00 PM">2:00 PM</option>
+          <option value="3:00 PM">3:00 PM</option>
+          <option value="4:00 PM">4:00 PM</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Package of Interest</label>
+        <select id="qrPackage">
+          <option value="Full Coordination">Full Coordination</option>
+          <option value="On-the-Day">On-the-Day</option>
+          <option value="Styling & Design">Styling & Design</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Message (optional)</label>
+        <textarea id="qrMessage" placeholder="Any details you'd like to share..." style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;font-size:14px;resize:vertical;min-height:80px;box-sizing:border-box;font-family:inherit;"></textarea>
+      </div>
+      <button class="cta-btn" style="width:100%;" id="generateQrBtn">Send & Generate QR Code</button>
+      <div id="bookingError" class="auth-error" style="display:none;margin-top:12px;"></div>
+      <div id="qrSuccess" style="display:none;margin-top:14px;background:#e1f5ee;border:1px solid #9fe1cb;border-radius:6px;padding:16px;font-size:13px;color:#0f6e56;text-align:center;">
+        <div style="font-size:20px;margin-bottom:6px;">🎉</div>
+        <div style="font-weight:600;margin-bottom:4px;">Booking Confirmed!</div>
+        <div style="color:#1D9E75;">Your request has been sent to the coordinator. Check your QR code below!</div>
+      </div>
+      <div id="qrOutput" style="display:none;margin-top:24px;text-align:center;">
+        <p style="font-size:12px;color:#888;margin-bottom:12px;">Your appointment QR code:</p>
+        <div id="qrCanvas" style="display:inline-block;padding:16px;border:1px solid #eee;border-radius:8px;background:white;"></div>
+        <br>
+        <button class="qr-download-btn" id="downloadQrBtn">Download QR Code</button>
+      </div>
+    </div>
+
+    <!-- SCAN -->
+    <div class="qr-card">
+      <h3>Scan QR Code</h3>
+      <p style="font-size:13px;color:#888;margin-bottom:20px;">Use your camera or upload a QR code image to read its appointment details.</p>
+
+      <!-- CAMERA SCAN -->
+      <button class="cta-btn" style="width:100%;margin-bottom:12px;" id="startCameraBtn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:7px;margin-top:-2px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        Scan with Camera
+      </button>
+
+      <div id="cameraSection" style="display:none;margin-bottom:16px;">
+        <div style="position:relative;width:100%;border-radius:8px;overflow:hidden;background:#000;">
+          <video id="cameraFeed" style="width:100%;display:block;" autoplay playsinline></video>
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;">
+            <div style="width:160px;height:160px;border:2px solid #c5a059;border-radius:8px;opacity:0.8;"></div>
+          </div>
+        </div>
+        <button class="qr-download-btn" style="width:100%;margin-top:10px;text-align:center;" id="stopCameraBtn">Stop Camera</button>
+      </div>
+
+      <!-- FILE UPLOAD -->
+      <div class="qr-upload-area" id="qrUploadArea">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#c5a059" stroke-width="1.5" style="margin-bottom:10px;"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="3" height="3"/><rect x="19" y="14" width="2" height="2"/><rect x="14" y="19" width="2" height="2"/><rect x="18" y="18" width="3" height="3"/></svg>
+        <p style="margin:0;font-size:14px;color:#999;">Or upload a QR code image</p>
+        <p style="margin:4px 0 0;font-size:12px;color:#bbb;">PNG, JPG supported</p>
+        <input type="file" id="qrScanInput" accept="image/*" style="position:absolute;inset:0;opacity:0;cursor:pointer;">
+      </div>
+
+      <div id="qrScanPreview" style="display:none;margin-top:16px;text-align:center;">
+        <img id="qrPreviewImg" style="max-width:180px;border-radius:8px;border:1px solid #eee;">
+      </div>
+      <div id="qrScanResult" style="display:none;margin-top:16px;">
+        <p style="font-size:12px;color:#888;margin-bottom:8px;">Appointment details:</p>
+        <div id="qrResultBox" class="qr-result-box"></div>
+      </div>
+      <div id="qrScanError" style="display:none;margin-top:16px;" class="auth-error">
+        Could not read QR code. Please try again or upload an image.
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- MY BOOKINGS (visible to logged-in clients) -->
+<section class="dashboard-section" id="myBookings" style="display:none;">
+  <div class="dashboard-header">
+    <h2 class="section-title" style="margin-bottom:6px;">My Bookings</h2>
+    <p style="text-align:center;color:#888;font-size:14px;margin-bottom:2rem;">Your submitted meeting requests.</p>
+  </div>
+  <div id="myBookingsList"></div>
+  <div id="myBookingsEmpty" style="display:none;text-align:center;padding:40px;color:#aaa;font-size:14px;">
+    You haven't made any bookings yet.
+  </div>
+</section>
+
+<!-- COORDINATOR DASHBOARD (only visible when logged in) -->
+<section class="dashboard-section" id="dashboard" style="display:none;">
+  <div class="dashboard-header">
+    <h2 class="section-title" style="margin-bottom:6px;">Bookings Dashboard</h2>
+    <p style="text-align:center;color:#888;font-size:14px;margin-bottom:2rem;">All meeting requests submitted through the website.</p>
+
+    <!-- STATUS LEGEND -->
+    <div class="status-actions" style="justify-content:center; margin-bottom:16px;">
+      <button class="status-btn pending" style="cursor:default; pointer-events:none;">Pending</button>
+      <button class="status-btn confirmed" style="cursor:default; pointer-events:none;">Confirmed</button>
+      <button class="status-btn cancelled" style="cursor:default; pointer-events:none;">Cancelled</button>
+    </div>
+
+    <div class="dashboard-filters">
+      <select id="filterStatus" class="dashboard-filter-select">
+        <option value="all">All Bookings</option>
+        <option value="pending">Pending</option>
+        <option value="confirmed">Confirmed</option>
+        <option value="cancelled">Cancelled</option>
+      </select>
+      <input type="text" id="filterSearch" class="dashboard-filter-input" placeholder="Search by name or email...">
+    </div>
+  </div>
+
+  <div id="bookingsList">
+    <div class="dashboard-loading">Loading bookings...</div>
+  </div>
+
+  <div id="noBookings" style="display:none;text-align:center;padding:40px;color:#aaa;font-size:14px;">
+    No bookings found.
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer id="contact">
+  <div class="footer-content">
+    <h3>Start Your Journey</h3>
+    <p>Let's plan something beautiful together.</p><br>
+    <p>&#128222; 09663627910</p>
+    <p>&#128205; Dait, Buenavista, Bohol</p>
+    <p>&#128231; eventsbymaryfatima@gmail.com</p>
+    <div class="social-links"><a href="https://web.facebook.com/avatavisuals" target="_blank">Facebook</a> &bull; <a href="https://www.instagram.com/avatavisuals" target="_blank">Instagram</a></div>
+  </div>
+</footer>
+
+<!-- CUSTOM CONFIRM MODAL -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <div class="confirm-box-icon" id="confirmIcon">⚠️</div>
+    <h3 id="confirmTitle">Are you sure?</h3>
+    <p id="confirmMessage">This action cannot be undone.</p>
+    <div class="confirm-box-actions">
+      <button class="confirm-no-btn" id="confirmNoBtn">Cancel</button>
+      <button class="confirm-yes-btn" id="confirmYesBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script>emailjs.init("BoPW0Wy_pabBrG9BT");</script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script type="module" src="script.js"></script>
+</body>
+</html>
+
